@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,44 +44,27 @@ func getConfigFilePath(filename string) string {
 	return filepath.Join(configDir, filename)
 }
 
-// readWriteAccessToken will store and retrieve access tokens for future use.
-func readWriteAccessToken(accessToken string) (string, error) {
+// writeAccessToken writes the access token to a file for future use.
+func writeAccessToken(accessToken string) error {
 	tokenFile := getConfigFilePath("token")
 
-	if accessToken != "" {
-		err := ioutil.WriteFile(tokenFile, []byte(accessToken), 0600)
-		if err != nil {
-			fmt.Println("Error writing access token")
-		}
-
-		return accessToken, err
+	if err := ioutil.WriteFile(tokenFile, []byte(accessToken), 0600); err != nil {
+		return fmt.Errorf("error writing access token %w", err)
 	}
+
+	return nil
+}
+
+// readAccessToken retreive access token from a file
+func readAccessToken() (string, error) {
+	tokenFile := getConfigFilePath("token")
 
 	content, err := ioutil.ReadFile(tokenFile)
 	if err != nil {
-		fmt.Println("No token provided on command line or in file")
-
-		return "", err
+		return "", fmt.Errorf("error reading access token from file %w", err)
 	}
 
 	return string(content), nil
-}
-
-// createClient will return a Slack client with the provided access token.
-// If that token is empty, it will try to get one from the config folder.
-func createClient(accessToken string) (*slack.Client, error) {
-	var err error
-
-	accessToken, err = readWriteAccessToken(accessToken)
-	if err != nil {
-		fmt.Println("error reading access token")
-
-		return nil, err
-	}
-
-	client := slack.New(accessToken)
-
-	return client, nil
 }
 
 // readDurationArgs will attempt to find a duration within command line args rather than flags.
@@ -158,15 +142,40 @@ func readFlags() statusInfo {
 	}
 }
 
+func getAccessToken(accessToken string) (string, error) {
+	// If provided, save and return
+	if accessToken != "" {
+		return accessToken, writeAccessToken(accessToken)
+	}
+
+	// Try to get from stored file
+	accessToken, err := readAccessToken()
+	if accessToken != "" && err == nil {
+		// Successfully read from file
+		return accessToken, nil
+	}
+
+	// Begin auth process to fetch a new token
+	accessToken, err = authenticate()
+
+	if err == nil {
+		// Successful authentication, save the token
+		err = writeAccessToken(accessToken)
+	}
+
+	return accessToken, err
+}
+
 func main() {
 	args := readFlags()
 
-	client, err := createClient(args.accessToken)
+	accessToken, err := getAccessToken(args.accessToken)
 	if err != nil {
-		fmt.Println("error getting client")
-		panic(err)
+		fmt.Println("error getting access token")
+		log.Fatal(err)
 	}
 
+	client := slack.New(accessToken)
 	err = client.SetUserCustomStatus(args.statusText, args.emoji, args.getExpirationTime())
 	if err != nil {
 		fmt.Println("error setting status")
