@@ -18,13 +18,9 @@ Here's how to do that on [Firefox](https://support.mozilla.org/en-US/kb/error-co
 
 ## Setup
 
-  1. Install the app into your Slack workspace
+  1. Install the command from the Releases tab
 
-<a href="https://slack.com/oauth/v2/authorize?client_id=961515888995.1614000264194&scope=&user_scope=users.profile:write,dnd:write"><img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" /></a>
-
-  2. Install the command from the Releases tab
-
-  3. Run the command! On first run, you will be asked to authenticate
+  2. Run the command! On first run, you will be asked to authenticate and install the app in your workspace
 
 ## Example usage
 
