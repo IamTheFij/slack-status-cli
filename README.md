@@ -2,6 +2,14 @@
 
 Set your Slack status via the command line
 
+## Requirements
+
+Rather than host a web server that you would need to trust, this command runs one on your local machine to retrieve the OAuth code. This page is hosted with an auto generated, self-signed certificate.
+
+This requires you to have `openssl` installed on your machine and, when the page loads for the first time, it will require you to trust the certificate or ignore the warning.
+
+Here's how to do that on [Firefox](https://support.mozilla.org/en-US/kb/error-codes-secure-websites?as=u&utm_source=inproduct#w_self-signed-certificate). On Chrome, you may have to enable `chrome://flags/#allow-insecure-localhost`.
+
 ## Example usage
 
 Set auth token (it will store it in `~/.config/slack-status-cli` or your `$XDG_CONFIG_HOME` dir

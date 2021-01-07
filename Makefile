@@ -6,6 +6,10 @@ DIST_TARGETS = $(addprefix dist/$(OUTPUT)-,$(DIST_ARCH))
 .PHONY: default
 default: slack-status
 
+.PHONY: run
+run: slack-status
+	./slack-status
+
 .PHONY: all
 all: dist
 
