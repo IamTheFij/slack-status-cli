@@ -10,6 +10,12 @@ This requires you to have `openssl` installed on your machine and, when the page
 
 Here's how to do that on [Firefox](https://support.mozilla.org/en-US/kb/error-codes-secure-websites?as=u&utm_source=inproduct#w_self-signed-certificate). On Chrome, you may have to enable `chrome://flags/#allow-insecure-localhost`.
 
+## Setup
+
+  1. Install the command from the Releases tab
+
+  2. Run the command! On first run, you will be asked to authenticate and install the app in your workspace
+
 ## Example usage
 
 Set auth token (it will store it in `~/.config/slack-status-cli` or your `$XDG_CONFIG_HOME` dir
