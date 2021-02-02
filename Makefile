@@ -2,6 +2,7 @@ OUTPUT = slack-status
 GOFILES = *.go go.mod go.sum
 DIST_ARCH = darwin-amd64 linux-amd64
 DIST_TARGETS = $(addprefix dist/$(OUTPUT)-,$(DIST_ARCH))
+VERSION ?= $(shell git describe --tags --dirty)
 
 .PHONY: default
 default: slack-status
@@ -28,12 +29,12 @@ $(DIST_TARGETS): $(GOFILES)
 	@mkdir -p ./dist
 	GOOS=$(word 3, $(subst -, ,$(@))) GOARCH=$(word 4, $(subst -, ,$(@))) \
 		 go build \
-		 -ldflags '-X "main.defaultClientID=$(CLIENT_ID)" -X "main.defaultClientSecret=$(CLIENT_SECRET)"' \
+		 -ldflags '-X "main.version=${VERSION}" -X "main.defaultClientID=$(CLIENT_ID)" -X "main.defaultClientSecret=$(CLIENT_SECRET)"' \
 		 -o $@
 
 .PHONY: clean
 clean:
-	rm ./slack-status
+	rm -f ./slack-status
 	rm -fr ./dist
 
 .PHONY: install-hooks

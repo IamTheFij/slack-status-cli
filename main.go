@@ -10,6 +10,10 @@ import (
 	"github.com/slack-go/slack"
 )
 
+var (
+	version = "dev"
+)
+
 // statusInfo contains all args passed from the command line
 type statusInfo struct {
 	// status contents
@@ -20,6 +24,9 @@ type statusInfo struct {
 	// domain and login management
 	login, makeDefault bool
 	domain             string
+
+	// other
+	showVersion bool
 }
 
 // getExipirationTime returns epoch time that status should expire from the duration.
@@ -72,6 +79,7 @@ func readFlags() statusInfo {
 	login := flag.Bool("login", false, "login to a Slack workspace")
 	domain := flag.String("domain", "", "domain to set status on")
 	makeDefault := flag.Bool("make-default", false, "set the current domain to default")
+	showVersion := flag.Bool("version", false, "show version and exit")
 
 	// Status flags
 	snooze := flag.Bool("snooze", false, "snooze notifications")
@@ -111,6 +119,7 @@ func readFlags() statusInfo {
 		login:       *login,
 		domain:      *domain,
 		makeDefault: *makeDefault,
+		showVersion: *showVersion,
 	}
 }
 
@@ -162,6 +171,11 @@ func getClient(domain string) (*slack.Client, error) {
 
 func main() {
 	args := readFlags()
+
+	if args.showVersion {
+		fmt.Println("version:", version)
+		return
+	}
 
 	var client *slack.Client
 	var err error
