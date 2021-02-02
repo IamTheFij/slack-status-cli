@@ -3,10 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,10 +12,14 @@ import (
 
 // statusInfo contains all args passed from the command line
 type statusInfo struct {
+	// status contents
 	emoji, statusText string
 	duration          time.Duration
 	snooze            bool
-	accessToken       string
+
+	// domain and login management
+	login, makeDefault bool
+	domain             string
 }
 
 // getExipirationTime returns epoch time that status should expire from the duration.
@@ -28,43 +29,6 @@ func (si statusInfo) getExpirationTime() int64 {
 	}
 
 	return time.Now().Add(si.duration).Unix()
-}
-
-// getConfigFilePath returns the path of a given file within the config folder.
-// The config folder will be created in ~/.local/config/slack-status-cli if it does not exist.
-func getConfigFilePath(filename string) string {
-	configHome := os.Getenv("XDG_CONFIG_HOME")
-	if configHome == "" {
-		configHome = "~/.local/config"
-	}
-
-	configDir := filepath.Join(configHome, "slack-status-cli")
-	_ = os.MkdirAll(configDir, 0755)
-
-	return filepath.Join(configDir, filename)
-}
-
-// writeAccessToken writes the access token to a file for future use.
-func writeAccessToken(accessToken string) error {
-	tokenFile := getConfigFilePath("token")
-
-	if err := ioutil.WriteFile(tokenFile, []byte(accessToken), 0600); err != nil {
-		return fmt.Errorf("error writing access token %w", err)
-	}
-
-	return nil
-}
-
-// readAccessToken retreive access token from a file
-func readAccessToken() (string, error) {
-	tokenFile := getConfigFilePath("token")
-
-	content, err := ioutil.ReadFile(tokenFile)
-	if err != nil {
-		return "", fmt.Errorf("error reading access token from file %w", err)
-	}
-
-	return string(content), nil
 }
 
 // readDurationArgs will attempt to find a duration within command line args rather than flags.
@@ -104,10 +68,15 @@ func readDurationArgs(args []string) ([]string, *time.Duration) {
 
 // readFlags will read all flags off the command line.
 func readFlags() statusInfo {
+	// Non-status flags
+	login := flag.Bool("login", false, "login to a Slack workspace")
+	domain := flag.String("domain", "", "domain to set status on")
+	makeDefault := flag.Bool("make-default", false, "set the current domain to default")
+
+	// Status flags
 	snooze := flag.Bool("snooze", false, "snooze notifications")
 	duration := flag.Duration("duration", 0, "duration to set status for")
 	emoji := flag.String("emoji", "", "emoji to use as status")
-	accessToken := flag.String("access-token", "", "slack access token")
 
 	flag.Parse()
 
@@ -134,48 +103,89 @@ func readFlags() statusInfo {
 	statusText := strings.Join(args, " ")
 
 	return statusInfo{
-		duration:    *duration,
-		snooze:      *snooze,
-		emoji:       *emoji,
-		accessToken: *accessToken,
-		statusText:  statusText,
+		duration:   *duration,
+		snooze:     *snooze,
+		emoji:      *emoji,
+		statusText: statusText,
+
+		login:       *login,
+		domain:      *domain,
+		makeDefault: *makeDefault,
 	}
 }
 
-func getAccessToken(accessToken string) (string, error) {
-	// If provided, save and return
-	if accessToken != "" {
-		return accessToken, writeAccessToken(accessToken)
+// loginAndSave will return a client after a new login flow and save the results
+func loginAndSave(domain string) (*slack.Client, error) {
+	accessToken, err := authenticate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate new login: %w", err)
 	}
 
-	// Try to get from stored file
-	accessToken, err := readAccessToken()
-	if accessToken != "" && err == nil {
-		// Successfully read from file
-		return accessToken, nil
+	client := slack.New(accessToken)
+
+	if domain == "" {
+		info, err := client.GetTeamInfo()
+		if err != nil {
+			return client, fmt.Errorf("failed to get team info: %w", err)
+		}
+
+		domain = info.Domain
 	}
 
-	// Begin auth process to fetch a new token
-	accessToken, err = authenticate()
-
-	if err == nil {
-		// Successful authentication, save the token
-		err = writeAccessToken(accessToken)
+	err = saveLogin(domain, accessToken)
+	if err != nil {
+		return client, fmt.Errorf("failed saving new login info: %w", err)
 	}
 
-	return accessToken, err
+	return client, err
+}
+
+// getClient returns a client either via the provided login or default login
+func getClient(domain string) (*slack.Client, error) {
+	var accessToken string
+	var err error
+
+	if domain == "" {
+		accessToken, err = getDefaultLogin()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get default login: %w", err)
+		}
+	} else {
+		accessToken, err = getLogin(domain)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get login for domain %s: %w", domain, err)
+		}
+	}
+
+	return slack.New(accessToken), nil
 }
 
 func main() {
 	args := readFlags()
 
-	accessToken, err := getAccessToken(args.accessToken)
-	if err != nil {
-		fmt.Println("error getting access token")
-		log.Fatal(err)
+	var client *slack.Client
+	var err error
+
+	// If the new-auth flag is present, force an auth flow
+	if args.login {
+		client, err = loginAndSave(args.domain)
+	} else {
+		client, err = getClient(args.domain)
 	}
 
-	client := slack.New(accessToken)
+	// We encountered some error in logging in
+	if err != nil {
+		fmt.Println("Unable to create Slack client. Have you logged in yet? Try using `-login`")
+		log.Fatal(fmt.Errorf("failed to get or save client: %w", err))
+	}
+
+	// If a domain is provided and asked to make deafult, save it to config
+	if args.makeDefault && args.domain != "" {
+		if err = saveDefaultLogin(args.domain); err != nil {
+			log.Fatal(fmt.Errorf("failed saving default domain %s: %w", args.domain, err))
+		}
+	}
+
 	err = client.SetUserCustomStatus(args.statusText, args.emoji, args.getExpirationTime())
 	if err != nil {
 		fmt.Println("error setting status")

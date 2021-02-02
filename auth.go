@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -19,15 +18,6 @@ var (
 	defaultClientID     = ""
 	defaultClientSecret = ""
 )
-
-func getEnvOrDefault(name, defaultValue string) string {
-	val, ok := os.LookupEnv(name)
-	if ok {
-		return val
-	}
-
-	return defaultValue
-}
 
 type slackApp struct {
 	clientID, clientSecret, redirectURI string
@@ -94,14 +84,6 @@ func (app slackApp) listenForCode() (string, error) {
 	return code, nil
 }
 
-func fileExists(path string) bool {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false
-	}
-
-	return true
-}
-
 func generateSelfSignedCertificates(certPath, keyPath string) error {
 	command := exec.Command(
 		"openssl",
@@ -125,8 +107,8 @@ func generateSelfSignedCertificates(certPath, keyPath string) error {
 
 func authenticate() (string, error) {
 	app := slackApp{
-		userScopes:   []string{"dnd:write", "users.profile:write"},
-		scopes:       []string{"dnd:write", "users.profile:write"},
+		userScopes:   []string{"dnd:write", "users.profile:write", "team:read"},
+		scopes:       []string{"dnd:write", "users.profile:write", "team:read"},
 		clientID:     getEnvOrDefault("CLIENT_ID", defaultClientID),
 		clientSecret: getEnvOrDefault("CLIENT_SECRET", defaultClientSecret),
 		redirectURI:  "https://localhost:8888/auth",

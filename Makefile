@@ -15,6 +15,7 @@ all: dist
 
 .PHONY: test
 test:
+	pre-commit run --all-files
 	go test
 
 slack-status: $(GOFILES)
@@ -34,3 +35,7 @@ $(DIST_TARGETS): $(GOFILES)
 clean:
 	rm ./slack-status
 	rm -fr ./dist
+
+.PHONY: install-hooks
+install-hooks:
+	pre-commit install --overwrite --install-hooks
