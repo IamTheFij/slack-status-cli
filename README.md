@@ -8,7 +8,7 @@ Rather than host a web server that you would need to trust, this command runs on
 
 This requires you to have `openssl` installed on your machine and, when the page loads for the first time, it will require you to trust the certificate or ignore the warning.
 
-Here's how to do that on [Firefox](https://support.mozilla.org/en-US/kb/error-codes-secure-websites?as=u&utm_source=inproduct#w_self-signed-certificate). On Chrome, you may have to enable `chrome://flags/#allow-insecure-localhost`.
+Here's how to do that on [Firefox](https://support.mozilla.org/en-US/kb/error-codes-secure-websites?as=u&utm_source=inproduct#w_self-signed-certificate). On Chrome, you may have to enable `chrome://flags/#allow-insecure-localhost`. If you can't get the link to open in Chrome, you can copy the URL into a different browser and try it there. It should work in Firefox or Safari.
 
 ## Setup
 

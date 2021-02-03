@@ -96,6 +96,8 @@ func generateSelfSignedCertificates(certPath, keyPath string) error {
 		"365",
 		"-newkey",
 		"rsa:2048",
+		"-addext",
+		"subjectAltName=DNS:localhost:8888",
 		"-keyout",
 		keyPath,
 		"-out",
