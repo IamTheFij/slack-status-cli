@@ -68,8 +68,15 @@ func (app slackApp) listenForCode() (string, error) {
 		}()
 	})
 
-	certPath := getConfigFilePath("cert.pem")
-	keyPath := getConfigFilePath("key.pem")
+	certPath, err := getConfigFilePath("cert.pem")
+	if err != nil {
+		return "", err
+	}
+
+	keyPath, err := getConfigFilePath("key.pem")
+	if err != nil {
+		return "", err
+	}
 
 	if !fileExists(certPath) || !fileExists(keyPath) {
 		if err := generateSelfSignedCertificates(certPath, keyPath); err != nil {
