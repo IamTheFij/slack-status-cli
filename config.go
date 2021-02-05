@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 )
 
@@ -19,22 +20,29 @@ type configData struct {
 }
 
 // getConfigFilePath returns the path of a given file within the config folder.
-// The config folder will be created in ~/.local/config/slack-status-cli if it does not exist.
-func getConfigFilePath(filename string) string {
+// The config folder will be created in ~/.config/slack-status-cli if it does not exist.
+func getConfigFilePath(filename string) (string, error) {
 	configHome := os.Getenv("XDG_CONFIG_HOME")
 	if configHome == "" {
-		configHome = "~/.local/config"
+		usr, err := user.Current()
+		if err != nil {
+			return "", fmt.Errorf("error getting current user information", err)
+		}
+		configHome = filepath.Join(usr.HomeDir, ".config")
 	}
 
 	configDir := filepath.Join(configHome, "slack-status-cli")
 	_ = os.MkdirAll(configDir, 0755)
 
-	return filepath.Join(configDir, filename)
+	return filepath.Join(configDir, filename), nil
 }
 
 // readConfig returns the current configuration
 func readConfig() (*configData, error) {
-	configPath := getConfigFilePath("config.json")
+	configPath, err := getConfigFilePath("config.json")
+	if err != nil {
+		return nil, err
+	}
 
 	if !fileExists(configPath) {
 		return &configData{DomainTokens: map[string]string{}}, nil
@@ -57,7 +65,10 @@ func readConfig() (*configData, error) {
 
 // writeConfig writes the provided config data
 func writeConfig(config configData) error {
-	configPath := getConfigFilePath("config.json")
+	configPath, err := getConfigFilePath("config.json")
+	if err != nil {
+		return err
+	}
 
 	contents, err := json.Marshal(config)
 	if err != nil {
