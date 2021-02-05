@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 )
 
@@ -19,22 +19,45 @@ type configData struct {
 	DomainTokens  map[string]string
 }
 
-// getConfigFilePath returns the path of a given file within the config folder.
-// The config folder will be created in ~/.config/slack-status-cli if it does not exist.
+// getConfigFilePath returns the path of a given file within the UserConfigDir.
 func getConfigFilePath(filename string) (string, error) {
-	configHome := os.Getenv("XDG_CONFIG_HOME")
-	if configHome == "" {
-		usr, err := user.Current()
-		if err != nil {
-			return "", fmt.Errorf("error getting current user information: %w", err)
-		}
-		configHome = filepath.Join(usr.HomeDir, ".config")
+	configApplicationName := "slack-status-cli"
+
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("error getting current config: %w", err)
 	}
 
-	configDir := filepath.Join(configHome, "slack-status-cli")
+	configDir = filepath.Join(configDir, configApplicationName)
 	_ = os.MkdirAll(configDir, 0755)
+	configFile := filepath.Join(configDir, filename)
 
-	return filepath.Join(configDir, filename), nil
+	// Handle migration of old config file path
+	// NOTE: Will be removed in future versions
+	if !fileExists(configFile) {
+		// Get old config path to see if we should migrate
+		userHomeDir, _ := os.UserHomeDir()
+		legacyConfigFile := filepath.Join(
+			userHomeDir,
+			".config",
+			configApplicationName,
+			filename,
+		)
+
+		if fileExists(legacyConfigFile) {
+			log.Printf("Migrating config from %s to %s\n", legacyConfigFile, configFile)
+			err = os.Rename(legacyConfigFile, configFile)
+			if err != nil {
+				err = fmt.Errorf(
+					"error migrating old config from %s: %w",
+					legacyConfigFile,
+					err,
+				)
+			}
+		}
+	}
+
+	return configFile, err
 }
 
 // readConfig returns the current configuration
