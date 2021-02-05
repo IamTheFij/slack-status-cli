@@ -26,7 +26,7 @@ func getConfigFilePath(filename string) (string, error) {
 	if configHome == "" {
 		usr, err := user.Current()
 		if err != nil {
-			return "", fmt.Errorf("error getting current user information", err)
+			return "", fmt.Errorf("error getting current user information: %w", err)
 		}
 		configHome = filepath.Join(usr.HomeDir, ".config")
 	}
