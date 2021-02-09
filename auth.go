@@ -14,9 +14,15 @@ import (
 )
 
 var (
-	// These are set via build flags but can be overriden via environment variables.
+	// These are set via build flags but can be overridden via environment variables.
 	defaultClientID     = ""
 	defaultClientSecret = ""
+)
+
+const (
+	httpReadTimeout  = 5 * time.Second
+	httpWriteTimeout = 10 * time.Second
+	httpIdleTimeout  = 120 * time.Second
 )
 
 type slackApp struct {
@@ -45,9 +51,9 @@ func (app slackApp) listenForCode() (string, error) {
 	// Also, should generate TLS certificate to use since https is a required scheme
 	server := http.Server{
 		Addr:         app.listenHost,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  httpReadTimeout,
+		WriteTimeout: httpWriteTimeout,
+		IdleTimeout:  httpIdleTimeout,
 	}
 
 	http.HandleFunc(app.listenPath, func(w http.ResponseWriter, r *http.Request) {

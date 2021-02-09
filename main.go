@@ -10,23 +10,19 @@ import (
 	"github.com/slack-go/slack"
 )
 
-var (
-	version = "dev"
-)
+var version = "dev"
 
 // statusInfo contains all args passed from the command line
 type statusInfo struct {
-	// status contents
 	emoji, statusText string
 	duration          time.Duration
 	snooze            bool
+}
 
-	// domain and login management
-	login, makeDefault bool
-	domain             string
-
-	// other
-	showVersion bool
+// commandOptions contains non-status options passed to the command
+type commandOptions struct {
+	login, makeDefault, showVersion bool
+	domain                          string
 }
 
 // getExipirationTime returns epoch time that status should expire from the duration.
@@ -74,7 +70,7 @@ func readDurationArgs(args []string) ([]string, *time.Duration) {
 }
 
 // readFlags will read all flags off the command line.
-func readFlags() statusInfo {
+func readFlags() (statusInfo, commandOptions) {
 	// Non-status flags
 	login := flag.Bool("login", false, "login to a Slack workspace")
 	domain := flag.String("domain", "", "domain to set status on")
@@ -111,16 +107,16 @@ func readFlags() statusInfo {
 	statusText := strings.Join(args, " ")
 
 	return statusInfo{
-		duration:   *duration,
-		snooze:     *snooze,
-		emoji:      *emoji,
-		statusText: statusText,
-
-		login:       *login,
-		domain:      *domain,
-		makeDefault: *makeDefault,
-		showVersion: *showVersion,
-	}
+			duration:   *duration,
+			snooze:     *snooze,
+			emoji:      *emoji,
+			statusText: statusText,
+		}, commandOptions{
+			login:       *login,
+			domain:      *domain,
+			makeDefault: *makeDefault,
+			showVersion: *showVersion,
+		}
 }
 
 // loginAndSave will return a client after a new login flow and save the results
@@ -152,6 +148,7 @@ func loginAndSave(domain string) (*slack.Client, error) {
 // getClient returns a client either via the provided login or default login
 func getClient(domain string) (*slack.Client, error) {
 	var accessToken string
+
 	var err error
 
 	if domain == "" {
@@ -170,21 +167,23 @@ func getClient(domain string) (*slack.Client, error) {
 }
 
 func main() {
-	args := readFlags()
+	status, options := readFlags()
 
-	if args.showVersion {
+	if options.showVersion {
 		fmt.Println("version:", version)
+
 		return
 	}
 
 	var client *slack.Client
+
 	var err error
 
 	// If the new-auth flag is present, force an auth flow
-	if args.login {
-		client, err = loginAndSave(args.domain)
+	if options.login {
+		client, err = loginAndSave(options.domain)
 	} else {
-		client, err = getClient(args.domain)
+		client, err = getClient(options.domain)
 	}
 
 	// We encountered some error in logging in
@@ -193,21 +192,21 @@ func main() {
 		log.Fatal(fmt.Errorf("failed to get or save client: %w", err))
 	}
 
-	// If a domain is provided and asked to make deafult, save it to config
-	if args.makeDefault && args.domain != "" {
-		if err = saveDefaultLogin(args.domain); err != nil {
-			log.Fatal(fmt.Errorf("failed saving default domain %s: %w", args.domain, err))
+	// If a domain is provided and asked to make default, save it to config
+	if options.makeDefault && options.domain != "" {
+		if err = saveDefaultLogin(options.domain); err != nil {
+			log.Fatal(fmt.Errorf("failed saving default domain %s: %w", options.domain, err))
 		}
 	}
 
-	err = client.SetUserCustomStatus(args.statusText, args.emoji, args.getExpirationTime())
+	err = client.SetUserCustomStatus(status.statusText, status.emoji, status.getExpirationTime())
 	if err != nil {
 		fmt.Println("error setting status")
 		panic(err)
 	}
 
-	if args.snooze {
-		_, err = client.SetSnooze(int(args.duration.Minutes()))
+	if status.snooze {
+		_, err = client.SetSnooze(int(status.duration.Minutes()))
 		if err != nil {
 			fmt.Println("error setting snooze")
 			panic(err)

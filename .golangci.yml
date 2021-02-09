@@ -1,0 +1,29 @@
+---
+linters:
+  enable:
+    - asciicheck
+    - bodyclose
+    - dogsled
+    - dupl
+    - exhaustive
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - gocyclo
+    - goerr113
+    - gofumpt
+    - goimports
+    - gomnd
+    - goprintffuncname
+    - gosec
+    - interfacer
+    - maligned
+    - misspell
+    - nakedret
+    - nestif
+    - nlreturn
+    - noctx
+    - unparam
+    - wsl
+  disable:
+    - gochecknoglobals

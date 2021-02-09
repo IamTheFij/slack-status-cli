@@ -10,9 +10,7 @@ import (
 	"path/filepath"
 )
 
-var (
-	errUnknownDomain = errors.New("unknown domain")
-)
+var errUnknownDomain = errors.New("unknown domain")
 
 type configData struct {
 	DefaultDomain string
@@ -29,7 +27,7 @@ func getConfigFilePath(filename string) (string, error) {
 	}
 
 	configDir = filepath.Join(configDir, configApplicationName)
-	_ = os.MkdirAll(configDir, 0755)
+	_ = os.MkdirAll(configDir, 0o755)
 	configFile := filepath.Join(configDir, filename)
 
 	// Handle migration of old config file path
@@ -46,6 +44,7 @@ func getConfigFilePath(filename string) (string, error) {
 
 		if fileExists(legacyConfigFile) {
 			log.Printf("Migrating config from %s to %s\n", legacyConfigFile, configFile)
+
 			err = os.Rename(legacyConfigFile, configFile)
 			if err != nil {
 				err = fmt.Errorf(
@@ -98,7 +97,7 @@ func writeConfig(config configData) error {
 		return fmt.Errorf("failed converting config to json: %w", err)
 	}
 
-	if err = ioutil.WriteFile(configPath, contents, 0600); err != nil {
+	if err = ioutil.WriteFile(configPath, contents, 0o600); err != nil {
 		return fmt.Errorf("error writing config to file: %w", err)
 	}
 
