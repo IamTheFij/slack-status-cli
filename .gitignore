@@ -19,3 +19,4 @@ slack-status
 slack-status-cli
 dist/
 .env
+certs/

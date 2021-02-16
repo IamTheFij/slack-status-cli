@@ -19,23 +19,32 @@ test:
 	pre-commit run --all-files
 	go test
 
-slack-status: $(GOFILES)
+slack-status: $(GOFILES) certs/key.pem
 	go build -o $(OUTPUT)
 
 .PHONY: dist
 dist: $(DIST_TARGETS)
 
-$(DIST_TARGETS): $(GOFILES)
+$(DIST_TARGETS): $(GOFILES) certs/key.pem
 	@mkdir -p ./dist
 	GOOS=$(word 3, $(subst -, ,$(@))) GOARCH=$(word 4, $(subst -, ,$(@))) \
 		 go build \
 		 -ldflags '-X "main.version=${VERSION}" -X "main.defaultClientID=$(CLIENT_ID)" -X "main.defaultClientSecret=$(CLIENT_SECRET)"' \
 		 -o $@
 
+certs/cert.pem: certs/key.pem
+certs/key.pem:
+	mkdir -p certs/
+	openssl req -x509 -subj "/C=US/O=Slack Status CLI/CN=localhost:8888" \
+		-nodes -days 365 -newkey "rsa:2048" \
+		-addext "subjectAltName=DNS:localhost:8888" \
+		-keyout certs/key.pem -out certs/cert.pem
+
 .PHONY: clean
 clean:
 	rm -f ./slack-status
 	rm -fr ./dist
+	rm -fr ./certs
 
 .PHONY: install-hooks
 install-hooks:

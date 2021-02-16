@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	_ "embed"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -17,6 +18,11 @@ var (
 	// These are set via build flags but can be overridden via environment variables.
 	defaultClientID     = ""
 	defaultClientSecret = ""
+
+	//go:embed "certs/cert.pem"
+	certPem []byte
+	//go:embed "certs/key.pem"
+	keyPem []byte
 )
 
 const (
@@ -48,12 +54,42 @@ func (app slackApp) listenForCode() (string, error) {
 	// start an http listener and listen for the redirect and return the code from params
 	var code string
 
+	certPath, err := getConfigFilePath("cert.pem")
+	if err != nil {
+		return "", fmt.Errorf("failed checking config path for cert: %w", err)
+	}
+
+	keyPath, err := getConfigFilePath("key.pem")
+	if err != nil {
+		return "", fmt.Errorf("failed checking config path for key: %w", err)
+	}
+
+	tlsCfg := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// If config files don't exist, use embedded
+	if !fileExists(certPath) && !fileExists(keyPath) {
+		cert, err := tls.X509KeyPair(certPem, keyPem)
+		if err != nil {
+			return "", fmt.Errorf("failed loading embedded key pair: %w", err)
+		}
+
+		tlsCfg.Certificates = make([]tls.Certificate, 1)
+		tlsCfg.Certificates[0] = cert
+
+		// Empty out paths since they don't exist so embeded certs will be used
+		certPath = ""
+		keyPath = ""
+	}
+
 	// Also, should generate TLS certificate to use since https is a required scheme
 	server := http.Server{
 		Addr:         app.listenHost,
 		ReadTimeout:  httpReadTimeout,
 		WriteTimeout: httpWriteTimeout,
 		IdleTimeout:  httpIdleTimeout,
+		TLSConfig:    tlsCfg,
 	}
 
 	http.HandleFunc(app.listenPath, func(w http.ResponseWriter, r *http.Request) {
@@ -74,50 +110,11 @@ func (app slackApp) listenForCode() (string, error) {
 		}()
 	})
 
-	certPath, err := getConfigFilePath("cert.pem")
-	if err != nil {
-		return "", err
-	}
-
-	keyPath, err := getConfigFilePath("key.pem")
-	if err != nil {
-		return "", err
-	}
-
-	if !fileExists(certPath) || !fileExists(keyPath) {
-		if err := generateSelfSignedCertificates(certPath, keyPath); err != nil {
-			return "", err
-		}
-	}
-
 	if err := server.ListenAndServeTLS(certPath, keyPath); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return "", err
 	}
 
 	return code, nil
-}
-
-func generateSelfSignedCertificates(certPath, keyPath string) error {
-	command := exec.Command(
-		"openssl",
-		"req",
-		"-x509",
-		"-subj",
-		"/C=US/O=Slack Status CLI/CN=localhost:8888",
-		"-nodes",
-		"-days",
-		"365",
-		"-newkey",
-		"rsa:2048",
-		"-addext",
-		"subjectAltName=DNS:localhost:8888",
-		"-keyout",
-		keyPath,
-		"-out",
-		certPath,
-	)
-
-	return command.Run()
 }
 
 func authenticate() (string, error) {
