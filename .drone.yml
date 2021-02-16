@@ -23,7 +23,7 @@ trigger:
 
 steps:
   - name: build all binaries
-    image: golang:1.15
+    image: golang:1.16
     environment:
       VERSION: ${DRONE_TAG:-${DRONE_COMMIT}}
       CLIENT_ID:
