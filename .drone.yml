@@ -5,6 +5,9 @@ name: test
 steps:
   - name: check
     image: iamthefij/drone-pre-commit:personal
+    commands:
+      - make certs
+      - pre-commit run --all-files
 
 ---
 kind: pipeline

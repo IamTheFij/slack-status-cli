@@ -19,19 +19,21 @@ test:
 	pre-commit run --all-files
 	go test
 
-slack-status: $(GOFILES) certs/key.pem
+slack-status: $(GOFILES) certs
 	go build -o $(OUTPUT)
 
 .PHONY: dist
 dist: $(DIST_TARGETS)
 
-$(DIST_TARGETS): $(GOFILES) certs/key.pem
+$(DIST_TARGETS): $(GOFILES) certs
 	@mkdir -p ./dist
 	GOOS=$(word 3, $(subst -, ,$(@))) GOARCH=$(word 4, $(subst -, ,$(@))) \
 		 go build \
 		 -ldflags '-X "main.version=${VERSION}" -X "main.defaultClientID=$(CLIENT_ID)" -X "main.defaultClientSecret=$(CLIENT_SECRET)"' \
 		 -o $@
 
+.PHONY: certs
+certs: certs/key.pem
 certs/cert.pem: certs/key.pem
 certs/key.pem:
 	mkdir -p certs/
