@@ -78,7 +78,7 @@ func (app slackApp) listenForCode() (string, error) {
 		tlsCfg.Certificates = make([]tls.Certificate, 1)
 		tlsCfg.Certificates[0] = cert
 
-		// Empty out paths since they don't exist so embeded certs will be used
+		// Empty out paths since they don't exist so embedded certs will be used
 		certPath = ""
 		keyPath = ""
 	}
