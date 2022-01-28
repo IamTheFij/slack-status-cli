@@ -1,6 +1,6 @@
 OUTPUT = slack-status
 GOFILES = *.go go.mod go.sum
-DIST_ARCH = darwin-amd64 darwin-arm64 linux-amd64
+DIST_ARCH = darwin-amd64 darwin-arm64 linux-amd64 linux-arm64
 DIST_TARGETS = $(addprefix dist/$(OUTPUT)-,$(DIST_ARCH))
 VERSION ?= $(shell git describe --tags --dirty)
 
