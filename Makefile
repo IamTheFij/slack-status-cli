@@ -46,6 +46,9 @@ certs/key.pem:
 clean:
 	rm -f ./slack-status
 	rm -fr ./dist
+
+.PHONY: clean-certs
+clean-certs:
 	rm -fr ./certs
 
 .PHONY: install-hooks
