@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+)
+
+const (
+	PERM_OWNER_RW = 0o600
+	PERM_RW_ALL   = 0o755
 )
 
 var errUnknownDomain = errors.New("unknown domain")
@@ -27,7 +31,7 @@ func getConfigFilePath(filename string) (string, error) {
 	}
 
 	configDir = filepath.Join(configDir, configApplicationName)
-	_ = os.MkdirAll(configDir, 0o755)
+	_ = os.MkdirAll(configDir, PERM_RW_ALL)
 	configFile := filepath.Join(configDir, filename)
 
 	// Handle migration of old config file path
@@ -70,7 +74,7 @@ func readConfig() (*configData, error) {
 		return &configData{DomainTokens: map[string]string{}}, nil
 	}
 
-	content, err := ioutil.ReadFile(configPath)
+	content, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading config from file: %w", err)
 	}
@@ -97,7 +101,7 @@ func writeConfig(config configData) error {
 		return fmt.Errorf("failed converting config to json: %w", err)
 	}
 
-	if err = ioutil.WriteFile(configPath, contents, 0o600); err != nil {
+	if err = os.WriteFile(configPath, contents, PERM_OWNER_RW); err != nil {
 		return fmt.Errorf("error writing config to file: %w", err)
 	}
 
