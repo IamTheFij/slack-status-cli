@@ -12,7 +12,7 @@ Here's how to do that on [Firefox](https://support.mozilla.org/en-US/kb/error-co
 
 ## Setup
 
-  1. Install the command from the Releases tab
+  1. Install the command from the [Gitea Releases](https://git.iamthefij.com/iamthefij/slack-status-cli/releases) tab
 
   2. Run the command! On first run, you will be asked to authenticate and install the app in your workspace
 
