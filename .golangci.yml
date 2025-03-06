@@ -5,20 +5,18 @@ linters:
     - bodyclose
     - dogsled
     - dupl
+    - err113
     - exhaustive
     - gochecknoinits
     - gocognit
     - gocritic
     - gocyclo
-    - goerr113
     - gofumpt
     - goimports
-    - gomnd
     - goprintffuncname
     - gosec
-    - interfacer
-    - maligned
     - misspell
+    - mnd
     - nakedret
     - nestif
     - nlreturn
