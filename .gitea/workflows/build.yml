@@ -1,0 +1,60 @@
+name: ci
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+
+      - name: Run pre-commit
+        uses: https://git.iamthefij.com/iamthefij/pre-commit-action@v3.0.2
+
+  release:
+    runs-on: ubuntu-latest
+    needs: test
+    if: "${{ github.event_name != 'pull_request' }}"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build binaries
+        env:
+          VERSION: "${{ github.REF_NAME }}"
+        run: make all
+
+      # Package binaries and create release if this is a tagged build
+      - name: Compress binaries
+        if: "${{ github.ref_type == 'tag' }}"
+        run: find ./dist -type f -executable -execdir tar -czvf {}.tar.gz {} \;
+
+      - name: Upload release
+        uses: https://gitea.com/actions/gitea-release-action@v1
+        if: "${{ github.ref_type == 'tag' }}"
+        with:
+          files: |-
+            dist/*.tar.gz
+          md5sum: true
+          sha256sum: true
